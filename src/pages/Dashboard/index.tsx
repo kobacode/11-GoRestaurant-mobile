@@ -35,6 +35,7 @@ interface Food {
   price: number;
   thumbnail_url: string;
   formattedPrice: string;
+  category: number;
 }
 
 interface Category {
@@ -54,27 +55,50 @@ const Dashboard: React.FC = () => {
   const navigation = useNavigation();
 
   async function handleNavigate(id: number): Promise<void> {
-    // Navigate do ProductDetails page
+    navigation.navigate('FoodDetails', { id });
   }
 
   useEffect(() => {
-    async function loadFoods(): Promise<void> {
-      // Load Foods from API
-    }
-
-    loadFoods();
-  }, [selectedCategory, searchValue]);
-
-  useEffect(() => {
     async function loadCategories(): Promise<void> {
-      // Load categories from API
+      api.get('categories').then(response => {
+        setCategories(response.data);
+      });
     }
 
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    async function loadFoods(): Promise<void> {
+      let params = '';
+
+      if (selectedCategory) {
+        params = `?category_like=${selectedCategory}`;
+        if (searchValue) {
+          params += `&name_like=${searchValue}`;
+        }
+      } else {
+        params = `?name_like=${searchValue}`;
+      }
+
+      const url = `foods${params}`;
+      await api.get<Food[]>(url).then(response => {
+        const foodsResponse = response.data.map(food => ({
+          ...food,
+          formattedPrice: formatValue(food.price),
+        }));
+        setFoods(foodsResponse);
+      });
+    }
+    loadFoods();
+  }, [selectedCategory, searchValue]);
+
   function handleSelectCategory(id: number): void {
-    // Select / deselect category
+    if (selectedCategory === id) {
+      setSelectedCategory(undefined);
+      return;
+    }
+    setSelectedCategory(id);
   }
 
   return (
